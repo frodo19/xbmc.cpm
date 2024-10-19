@@ -507,6 +507,10 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
     if (m_streaminfo.codec == AV_CODEC_ID_FLAC && m_streaminfo.channellayout)
       audioframe.format.m_channelLayout = CAEUtil::GetAEChannelLayout(m_streaminfo.channellayout);
 
+    // If we have a stream bits per sample set on the stream info bit depth.
+    if (m_streaminfo.bitspersample)   
+      audioframe.format.m_streamInfo.m_bitDepth = m_streaminfo.bitspersample;
+
     // we have successfully decoded an audio frame, setup renderer to match
     if (!m_audioSink.IsValidFormat(audioframe))
     {
