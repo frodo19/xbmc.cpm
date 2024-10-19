@@ -398,7 +398,7 @@ CBitstreamConverter::CBitstreamConverter(CDVDStreamInfo& hints) : m_hints(hints)
   m_start_decode = true;
   m_convert_dovi = 0;
   m_convert_Hdr10Plus = false;
-  m_prefer_Hdr10Plus_convertion = false;
+  m_prefer_Hdr10Plus_conversion = false;
   m_removeDovi = false;
   m_removeHdr10Plus = false;
   m_dovi_el_type = ELType::TYPE_NONE;
@@ -1136,7 +1136,7 @@ void CBitstreamConverter::ProcessSeiPrefix(uint8_t *buf, int32_t nal_size, uint8
 
   if (auto res = CHevcSei::ExtractHdr10Plus(messages, clearBuf)) {
 
-    bool convert = m_convert_Hdr10Plus && ((m_intial_hdrType == StreamHdrType::HDR_TYPE_HDR10) || m_prefer_Hdr10Plus_convertion);
+    bool convert = m_convert_Hdr10Plus && ((m_intial_hdrType == StreamHdrType::HDR_TYPE_HDR10) || m_prefer_Hdr10Plus_conversion);
 
     if (convert) {
       if (m_first_convert) {

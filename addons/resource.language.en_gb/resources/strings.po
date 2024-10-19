@@ -24924,11 +24924,11 @@ msgstr ""
 #. "Dolby Vision HDR10+"
 #: system/settings/settings.xml
 msgctxt "#50121"
-msgid "Perfer convertion over original Dolby Vision"
+msgid "Prefer conversion over original Dolby Vision"
 msgstr ""
 
 #. "Dolby Vision HDR10+"
 #: system/settings/settings.xml
 msgctxt "#50122"
-msgid "When Dolby Vision and HDR10+ are both present, perfer convertion from HDR10+ over using the original Dolby Vision, note any FEL will be discarded in this case."
+msgid "When Dolby Vision and HDR10+ are both present, prefer conversion from HDR10+ over using the original Dolby Vision, note any FEL will be discarded in this case."
 msgstr ""

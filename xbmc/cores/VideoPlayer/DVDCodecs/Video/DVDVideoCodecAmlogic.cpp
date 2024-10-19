@@ -309,7 +309,7 @@ bool CDVDVideoCodecAmlogic::Open(CDVDStreamInfo &hints, CDVDCodecOptions &option
 
           if (preferConvertHdr10Plus) 
           {
-            CLog::Log(LOGINFO, "{}::{} - DV HEVC bitstream - if also contains HDR10+, conversion will be perfered.",
+            CLog::Log(LOGINFO, "{}::{} - DV HEVC bitstream - if also contains HDR10+, conversion will be prefered.",
                       __MODULE_NAME__, __FUNCTION__);
           }
           else

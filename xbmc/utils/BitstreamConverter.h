@@ -124,7 +124,7 @@ public:
   bool              CanStartDecode() const;
   void              SetConvertDovi(int value) { m_convert_dovi = value; }
   void              SetConvertHdr10Plus(bool value) { m_convert_Hdr10Plus = value; }
-  void              SetPreferCovertHdr10Plus(bool value) { m_prefer_Hdr10Plus_convertion = value; }
+  void              SetPreferCovertHdr10Plus(bool value) { m_prefer_Hdr10Plus_conversion = value; }
   void              SetConvertHdr10PlusPeakBrightnessSource(enum PeakBrightnessSource value) { m_convert_Hdr10Plus_peak_brightness_source = value; };
   void              SetRemoveDovi(bool value) { m_removeDovi = value; }
   void              SetRemoveHdr10Plus(bool value) { m_removeHdr10Plus = value; }
@@ -195,7 +195,7 @@ protected:
   bool              m_removeDovi;
   bool              m_removeHdr10Plus;
   bool              m_convert_Hdr10Plus;
-  bool              m_prefer_Hdr10Plus_convertion;
+  bool              m_prefer_Hdr10Plus_conversion;
   enum PeakBrightnessSource m_convert_Hdr10Plus_peak_brightness_source;
   enum ELType       m_dovi_el_type;
   std::string       m_dovi_meta_version;
