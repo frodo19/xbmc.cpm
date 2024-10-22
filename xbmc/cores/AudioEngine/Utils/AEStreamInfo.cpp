@@ -309,13 +309,13 @@ unsigned int CAEStreamParser::DetectType(uint8_t* data, unsigned int size)
   return possible ? possible : skipped;
 }
 
-bool hasEAC3JOC(const uint8_t* buffer, size_t size) {
-
-  size_t bitIndex = 40; // Start after the first 5 bytes
-
-  auto readBits = [&](int numBits) -> uint32_t {
+bool hasAtmos(const uint8_t* buffer, unsigned int size) {
+  
+  size_t bitIndex = 0; 
+  
+  auto readBits = [&](uint32_t numBits) -> uint32_t {
     uint32_t result = 0;
-    for (int i = 0; i < numBits; ++i) {
+    for (uint32_t i = 0; i < numBits; ++i) {
       if (bitIndex / 8 >= size) return 0; // Buffer overrun protection
       result = (result << 1) | ((static_cast<uint8_t>(buffer[bitIndex / 8]) >> (7 - (bitIndex % 8))) & 1);
       ++bitIndex;
@@ -323,78 +323,118 @@ bool hasEAC3JOC(const uint8_t* buffer, size_t size) {
     return result;
   };
 
-  auto skipBits = [&](int numBits) {
+  auto skipBits = [&](uint32_t numBits) {
     bitIndex += numBits;
   };
 
-  // Skip frame_type, substreamid, frame_size, srcode 
-  skipBits(34);
+  auto alignToNextByte = [&]() {
+    if (bitIndex % 8 != 0) {
+        uint32_t nextBytePosition = ((bitIndex + 7) & ~7);
+        if ((nextBytePosition / 8) >= size) {
+            bitIndex = size * 8;  // Set to end of buffer
+        } else {
+            bitIndex = nextBytePosition;
+        }
+    }
+  };
+
+  // look for an EAC3 (AC3) sync word
+  if (buffer[0] != 0x0b || buffer[1] != 0x77)
+    return false;
+
+  // check the bsid is EAC3
+  uint32_t bsid = (buffer[5] & 0xF8) >> 3;
+  if (bsid != 16) return false;
+
+  skipBits(16); // Skip the sync word 2 bytes
+
+  uint32_t frameType = readBits(2);     // strmType  
+  uint32_t subStreamId = readBits(3);
+  uint32_t frameSize = (readBits(11) + 1) << 1;   // number of 16bit words (-1) of data in the frame, Multiply by 2 for bytes)
+  skipBits(4); //srCode / numBlocks
   
   uint32_t channelMode = readBits(3);
-
-  // Skip lfeOn, bsid, dialnorm
-  skipBits(11);
+  
+  skipBits(11);  // Skip lfeOn, bsid, dialogue normalization extention
 
   if (readBits(1)) skipBits(8);
-  if (channelMode == 0) {
+  if (channelMode == 0) // 1+1
+  {
     skipBits(5);
     if (readBits(1)) skipBits(8);
   }
+  // Align to byte.
+  alignToNextByte();
 
   // Search for EMDF sync
   bool emdfFound = false;
-  while (bitIndex / 8 < size - 2) {
-    uint16_t emdfSync = (readBits(8) << 8) | readBits(8);
-    if (emdfSync == 0x5838) {
-      emdfFound = true;
-      break;
+  while (bitIndex / 8 < frameSize - 2) {
+
+    if ((bitIndex / 8 + 1) >= frameSize) break;  // Check for second byte
+    
+    uint8_t byte1 = buffer[bitIndex / 8];
+    uint8_t byte2 = buffer[bitIndex / 8 + 1];
+    
+    if (byte1 == 0x58 && byte2 == 0x38) {
+        emdfFound = true;
+        bitIndex += 16;  // Move past the sync word
+        break;
     }
-    bitIndex -= 15;
+    bitIndex += 8;
   }
 
   if (!emdfFound) return false;
 
-  skipBits(16); // emdf_container_size
+  uint32_t emdfSize = readBits(16); // emdf_container_length in bytes.
+  uint32_t end_size = (bitIndex / 8) + emdfSize;
+
+  if (end_size > size) return false;
 
   uint32_t emdfVersion = readBits(2);
   if (emdfVersion == 3) emdfVersion += readBits(2);
-
   if (emdfVersion > 0) return false;
 
+  // key id + key addition if 7
   if (readBits(3) == 7) skipBits(2);
 
-  while (bitIndex / 8 < size) {
-    uint32_t emdfPayloadID = readBits(5);
-    if (emdfPayloadID == 0x1F) skipBits(5);
+  while ((bitIndex / 8) < end_size)
+  {
+    uint32_t emdfPayloadID = readBits(5); 
 
-    // Skip emdf_payload_config
-    if (readBits(1)) skipBits(12);
-    if (readBits(1)) skipBits(11);
-    if (readBits(1)) skipBits(2);
-    if (readBits(1)) skipBits(8);
-    if (!readBits(1)) {
-      skipBits(1);
-      if (!readBits(1) && !readBits(1)) skipBits(9);
+    if (emdfPayloadID == 11) return true; // OAMD - object audio metadata payload
+    if (emdfPayloadID == 14) return true; // JOC - joint object coding payload - (did not see this case.)
+
+    uint32_t sampleOffsetE = readBits(1);
+    if (sampleOffsetE) skipBits(12);
+    if (readBits(1)) skipBits(11); // duration
+    if (readBits(1)) skipBits(2);  // group id
+    if (readBits(1)) skipBits(8);  // codec specific data - reserved
+
+    if (!readBits(1)) //discard_unknown_payload
+    {
+      uint32_t payload_frame_aligned = 0;
+      if (!sampleOffsetE)
+      {
+        payload_frame_aligned = readBits(1);  
+        if (payload_frame_aligned)
+          skipBits(2); // create_duplicate - remove_duplicate
+      }
+
+      if (sampleOffsetE || payload_frame_aligned)
+        skipBits(7); // priority - proc_allowed
     }
-
+    
     uint32_t emdfPayloadSize = readBits(8) * 8;
-
-    if (emdfPayloadID == 14) {
-      skipBits(12);
-      uint32_t jocNumObjectsBits = readBits(6);
-      return jocNumObjectsBits > 0;
-    }
-
-    skipBits(emdfPayloadSize + 1);
+    skipBits(emdfPayloadSize);
   }
 
   return false;
 }
 
+
 bool CAEStreamParser::TrySyncAC3(uint8_t* data,
                                  unsigned int size,
-                                 bool resyncing,
-                                 bool wantEAC3dependent)
+                                 bool resyncing)
 {
 
   // https://www.etsi.org/deliver/etsi_ts/103400_103499/103420/01.02.01_60/ts_103420v010201p.pdf
@@ -429,9 +469,6 @@ bool CAEStreamParser::TrySyncAC3(uint8_t* data,
   {
     // Normal AC-3
 
-    if (wantEAC3dependent)
-      return false;
-
     uint8_t fscod = data[4] >> 6;
     uint8_t frmsizecod = data[4] & 0x3F;
     if (fscod == 3 || frmsizecod > 37)
@@ -465,20 +502,15 @@ bool CAEStreamParser::TrySyncAC3(uint8_t* data,
     unsigned int reqBytes = fsizeMain + 8;
     if (size < reqBytes)
     {
-      // not enough data to check for E-AC3 dependent frame, request more
+      CLog::Log(LOGINFO, "CAEStreamParser::TrySyncAC3 - AC3 Not enough data for frame");
+      // not enough data to check for AC3 frame, request more
       m_needBytes = reqBytes;
       m_fsize = 0;
       // no need to resync => return true
       return true;
     }
     m_info.m_ac3FrameSize = fsizeMain;
-    if (TrySyncAC3(data + fsizeMain, size - fsizeMain, resyncing, true))
-    {
-      // concatenate the main and dependent frames
-      m_fsize += fsizeMain;
-      return true;
-    }
-
+    
     unsigned int crc_size;
     // if we have enough data, validate the entire packet, else try to validate crc2 (5/8 of the packet)
     if (framesize <= size)
@@ -504,17 +536,16 @@ bool CAEStreamParser::TrySyncAC3(uint8_t* data,
   }
   else
   {
-    // Enhanced AC-3
-    uint8_t strmtyp = data[2] >> 6;
-    if (strmtyp == 3)
-      return false;
 
-    if (strmtyp != 1 && wantEAC3dependent)
-      return false;
+    uint8_t strmtyp = data[2] >> 6;
+
+    // Enhanced AC-3 - Sync on indepedent frame only.
+    if (strmtyp != 0) return false;
 
     unsigned int framesize = (((data[2] & 0x7) << 8) | data[3]) + 1;
+
     uint8_t fscod = (data[4] >> 6) & 0x3;
-    uint8_t cod = (data[4] >> 4) & 0x3;
+    uint8_t cod = (data[4] >> 4) & 0x3;  // numblkscod ?
     uint8_t acmod = (data[4] >> 1) & 0x7;
     uint8_t lfeon = data[4] & 0x1;
     uint8_t blocks;
@@ -533,40 +564,28 @@ bool CAEStreamParser::TrySyncAC3(uint8_t* data,
       m_info.m_sampleRate = AC3FSCod[fscod];
     }
 
-    m_fsize = framesize << 1;
+    m_fsize = framesize << 1; // Convert Frame size to bytes (<<1 is multiply by 2)
     m_info.m_repeat = MAX_EAC3_BLOCKS / blocks;
 
-    // EAC3 can have a dependent stream too
-    if (!wantEAC3dependent)
+    unsigned int fsizeMain = m_fsize;
+    unsigned int reqBytes = fsizeMain + 8;
+
+    if (size < reqBytes)
     {
-      unsigned int fsizeMain = m_fsize;
-      unsigned int reqBytes = fsizeMain + 8;
-      if (size < reqBytes)
-      {
-        // not enough data to check for E-AC3 dependent frame, request more
-        m_needBytes = reqBytes;
-        m_fsize = 0;
-        // no need to resync => return true
-        return true;
-      }
-      m_info.m_ac3FrameSize = fsizeMain;
-      if (TrySyncAC3(data + fsizeMain, size - fsizeMain, resyncing, true))
-      {
-        // concatenate the main and dependent frames
-        m_fsize += fsizeMain;
-        return true;
-      }
+      CLog::Log(LOGINFO, "CAEStreamParser::TrySyncAC3 - E-AC3 Not enough data for frame");
+      // not enough data to check for E-AC3 frame, request more
+      m_needBytes = reqBytes;
+      m_fsize = 0;
+      // no need to resync => return true
+      return true;
     }
 
-    // Check for Joint Object Coding aka Atmos in the first 8 frames, otherwise not Atmos.
-    if (!m_info.m_isDolbyAtmos && (m_eac3DolbyAtmosCheckCount < 8)) {
-
+    // Check for Atmos
+    if (!m_info.m_isDolbyAtmos && m_eac3DolbyAtmosCheckCount < 17) {
       m_eac3DolbyAtmosCheckCount++;
-      m_info.m_isDolbyAtmos = hasEAC3JOC(data, size);
-
+      m_info.m_isDolbyAtmos = hasAtmos(data, size);
       if (m_info.m_isDolbyAtmos)
-        CLog::Log(LOGINFO, "CAEStreamParser::TrySyncAC3 - E-AC3 stream detected with Atmos on frame [{}]",
-                  m_eac3DolbyAtmosCheckCount);
+        CLog::Log(LOGINFO, "CAEStreamParser::TrySyncAC3 - E-AC3 Atmos detected after [{}] frames", m_eac3DolbyAtmosCheckCount);
     }
 
     if (m_info.m_type == CAEStreamInfo::STREAM_TYPE_EAC3 && m_hasSync && !resyncing)
@@ -580,8 +599,9 @@ bool CAEStreamParser::TrySyncAC3(uint8_t* data,
     m_info.m_ac3FrameSize += m_fsize;
     m_info.m_bitDepth = 16;
 
-    CLog::Log(LOGINFO, "CAEStreamParser::TrySyncAC3 - E-AC3 stream detected ({} channels, {}Hz)",
-              m_info.m_channels, m_info.m_sampleRate);
+    CLog::Log(LOGINFO, "CAEStreamParser::TrySyncAC3 - E-AC3 stream detected ({} channels, {}Hz, {}-bit)",
+              m_info.m_channels, m_info.m_sampleRate, m_info.m_bitDepth);
+
     return true;
   }
 }
@@ -593,7 +613,7 @@ unsigned int CAEStreamParser::SyncAC3(uint8_t* data, unsigned int size)
   for (; size - skip > 7; ++skip, ++data)
   {
     bool resyncing = (skip != 0);
-    if (TrySyncAC3(data, size - skip, resyncing, false))
+    if (TrySyncAC3(data, size - skip, resyncing))
       return skip;
   }
 

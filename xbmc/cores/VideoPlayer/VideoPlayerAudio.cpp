@@ -565,6 +565,9 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
 
   audioframe.framesOut += framesOutput;
 
+  // Dolby Atmos for current detecton method on E-AC3 can be delayed - always update status - any better way?
+  m_processInfo.SetAudioIsDolbyAtmos(audioframe.format.m_streamInfo.m_isDolbyAtmos);
+
   // signal to our parent that we have initialized
   if (m_syncState == IDVDStreamPlayer::SYNC_STARTING)
   {
@@ -591,7 +594,7 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
         m_processInfo.SetAudioBitsPerSample(audioframe.format.m_streamInfo.m_bitDepth);
       else
         m_processInfo.SetAudioBitsPerSample(audioframe.bits_per_sample);
-      m_processInfo.SetAudioIsDolbyAtmos(audioframe.format.m_streamInfo.m_isDolbyAtmos);
+      //m_processInfo.SetAudioIsDolbyAtmos(audioframe.format.m_streamInfo.m_isDolbyAtmos);
       m_processInfo.SetAudioDtsXType(audioframe.format.m_streamInfo.m_dtsXType);
       m_processInfo.SetAudioDecoderName(m_pAudioCodec->GetName());
       m_messageParent.Put(std::make_shared<CDVDMsg>(CDVDMsg::PLAYER_AVCHANGE));
