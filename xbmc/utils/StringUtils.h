@@ -356,13 +356,13 @@ public:
   }
 
   template<typename T>
-  static std::string FormatNumberNoDecimal(T num)
+  static std::string FormatNumber(T num, unsigned int precision)
   {
       std::stringstream ss;
   #if !(defined(_DEBUG) && defined(TARGET_WINDOWS))
       ss.imbue(GetOriginalLocale());
   #endif
-      ss.precision(0);
+      ss.precision(precision);
       ss << std::fixed << num;
       return ss.str();
   }

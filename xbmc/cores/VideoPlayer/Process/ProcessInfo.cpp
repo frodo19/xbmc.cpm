@@ -86,9 +86,9 @@ void CProcessInfo::ResetVideoCodecInfo()
   m_videoColorPrimaries = AVCOL_PRI_UNSPECIFIED;
   m_videoColorTransferCharacteristic = AVCOL_TRC_UNSPECIFIED;
   m_videoDoViDecoderConfigurationRecord = {};
-  m_videoDoViELType = DOVIELType::TYPE_NONE;
-  m_videoDoViMetaVersion = "";
+  m_videoDoViFrameInfo = {};
   m_videoDoViCodecFourCC = "";
+  m_videoHDRStaticMetadataInfo = {};
   m_videoVS10Mode = DOLBY_VISION_OUTPUT_MODE_BYPASS;
   m_videoLiveBitRate = 0;
   m_videoQueueLevel = 0;
@@ -117,9 +117,9 @@ void CProcessInfo::ResetVideoCodecInfo()
     m_dataCache->SetVideoColorPrimaries(m_videoColorPrimaries);
     m_dataCache->SetVideoColorTransferCharacteristic(m_videoColorTransferCharacteristic);
     m_dataCache->SetVideoDoViDecoderConfigurationRecord(m_videoDoViDecoderConfigurationRecord);
-    m_dataCache->SetVideoDoViELType(m_videoDoViELType);
-    m_dataCache->SetVideoDoViMetaVersion(m_videoDoViMetaVersion);
+    m_dataCache->SetVideoDoViFrameInfo(m_videoDoViFrameInfo);
     m_dataCache->SetVideoDoViCodecFourCC(m_videoDoViCodecFourCC);
+    m_dataCache->SetVideoHDRStaticMetadataInfo(m_videoHDRStaticMetadataInfo);
     m_dataCache->SetVideoVS10Mode(m_videoVS10Mode);
     m_dataCache->SetVideoLiveBitRate(m_videoLiveBitRate);
     m_dataCache->SetVideoQueueLevel(m_videoQueueLevel);
@@ -358,38 +358,21 @@ AVDOVIDecoderConfigurationRecord CProcessInfo::GetVideoDoViDecoderConfigurationR
   return m_videoDoViDecoderConfigurationRecord;
 }
 
-void CProcessInfo::SetVideoDoViELType(enum DOVIELType doviElType)
+void CProcessInfo::SetVideoDoViFrameInfo(DOVIFrameInfo value)
 {
   std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
 
-  m_videoDoViELType = doviElType;
+  m_videoDoViFrameInfo = value;
 
   if (m_dataCache)
-    m_dataCache->SetVideoDoViELType(m_videoDoViELType);
+    m_dataCache->SetVideoDoViFrameInfo(m_videoDoViFrameInfo);
 }
 
-enum DOVIELType CProcessInfo::GetVideoDoViELType()
+DOVIFrameInfo CProcessInfo::GetVideoDoViFrameInfo()
 {
   std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
 
-  return m_videoDoViELType;
-}
-
-void CProcessInfo::SetVideoDoViMetaVersion(std::string metaVersion)
-{
-  std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
-
-  m_videoDoViMetaVersion = metaVersion;
-
-  if (m_dataCache)
-    m_dataCache->SetVideoDoViMetaVersion(m_videoDoViMetaVersion);
-}
-
-std::string CProcessInfo::GetVideoDoViMetaVersion()
-{
-  std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
-
-  return m_videoDoViMetaVersion;
+  return m_videoDoViFrameInfo;
 }
 
 void CProcessInfo::SetVideoDoViCodecFourCC(std::string codecFourCC)
@@ -407,6 +390,23 @@ std::string CProcessInfo::GetVideoDoViCodecFourCC()
   std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
 
   return m_videoDoViCodecFourCC;
+}
+
+void CProcessInfo::SetVideoHDRStaticMetadataInfo(HDRStaticMetadataInfo value)
+{
+  std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
+
+  m_videoHDRStaticMetadataInfo = value;
+
+  if (m_dataCache)
+    m_dataCache->SetVideoHDRStaticMetadataInfo(m_videoHDRStaticMetadataInfo);
+}
+
+HDRStaticMetadataInfo CProcessInfo::GetVideoHDRStaticMetadataInfo()
+{
+  std::unique_lock<CCriticalSection> lock(m_videoCodecSection);
+
+  return m_videoHDRStaticMetadataInfo;
 }
 
 void CProcessInfo::SetVideoVS10Mode(unsigned int vs10Mode)

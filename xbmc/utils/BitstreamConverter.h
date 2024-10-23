@@ -150,8 +150,9 @@ protected:
                                          uint32_t in_size,
                                          uint8_t nal_type);
 
-  void ApplyMasteringDisplayColourVolume(const MasteringDisplayColourVolume& metadata);
-  void ApplyContentLightLevel(const ContentLightLevel& metadata);
+  void ApplyMasteringDisplayColourVolume(const MasteringDisplayColourVolume& metadata, bool& update);
+  void ApplyContentLightLevel(const ContentLightLevel& metadata, bool& update);
+  void UpdateHdrStaticMetadata();
   void AddDoViRpuNalu(const Hdr10PlusMetadata& meta, uint8_t **poutbuf, int *poutbuf_size);
 
   void ProcessSeiPrefix(uint8_t *buf, int32_t nal_size, uint8_t **poutbuf, int *poutbuf_size, Hdr10PlusMetadata& meta, bool& convert_hdr10plus_meta);
@@ -191,9 +192,5 @@ protected:
   bool              m_prefer_Hdr10Plus_conversion;
   enum PeakBrightnessSource m_convert_Hdr10Plus_peak_brightness_source;
   bool              m_first_frame;
-
-  uint16_t          m_max_display_mastering_luminance;
-  uint16_t          m_min_display_mastering_luminance;
-  uint16_t          m_max_content_light_level;
-  uint16_t          m_max_frame_average_light_level;
+  HDRStaticMetadataInfo m_hdrStaticMetadataInfo;
 };

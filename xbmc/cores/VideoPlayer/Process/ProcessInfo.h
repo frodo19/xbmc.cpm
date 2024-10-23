@@ -66,12 +66,16 @@ public:
   AVColorTransferCharacteristic GetVideoColorTransferCharacteristic();
   void SetVideoDoViDecoderConfigurationRecord(AVDOVIDecoderConfigurationRecord doViDecoderConfigurationRecord);
   AVDOVIDecoderConfigurationRecord GetVideoDoViDecoderConfigurationRecord();
-  void SetVideoDoViELType(enum DOVIELType doviElType);
-  enum DOVIELType GetVideoDoViELType();
-  void SetVideoDoViMetaVersion(std::string metaVersion);
-  std::string GetVideoDoViMetaVersion();
+    
+  void SetVideoDoViFrameInfo(DOVIFrameInfo value);
+  DOVIFrameInfo GetVideoDoViFrameInfo();
+
   void SetVideoDoViCodecFourCC(std::string codecFourCC);
   std::string GetVideoDoViCodecFourCC();
+
+  void SetVideoHDRStaticMetadataInfo(HDRStaticMetadataInfo value);
+  HDRStaticMetadataInfo GetVideoHDRStaticMetadataInfo();
+
   void SetVideoVS10Mode(unsigned int vs10Mode);
   unsigned int GetVideoVS10Mode();
   void SetVideoLiveBitRate(double bitRate);
@@ -184,9 +188,13 @@ protected:
   AVColorPrimaries m_videoColorPrimaries;
   AVColorTransferCharacteristic m_videoColorTransferCharacteristic;
   AVDOVIDecoderConfigurationRecord m_videoDoViDecoderConfigurationRecord;
-  enum DOVIELType m_videoDoViELType;
-  std::string m_videoDoViMetaVersion;
+
+  DOVIFrameInfo m_videoDoViFrameInfo;
+
   std::string m_videoDoViCodecFourCC;
+
+  HDRStaticMetadataInfo m_videoHDRStaticMetadataInfo;
+
   unsigned int m_videoVS10Mode;
   double m_videoLiveBitRate;
   int m_videoQueueLevel;

@@ -32,6 +32,34 @@ enum DOVIELType : int
   TYPE_MEL
 };
 
+struct DOVIFrameInfo
+{
+
+
+  uint16_t level1_min_pq = 0;
+  uint16_t level1_max_pq = 0;
+  uint16_t level1_avg_pq = 0;
+
+  uint16_t level6_max_lum = 0;
+  uint16_t level6_min_lum = 0;
+
+  uint16_t level6_max_cll = 0;
+  uint16_t level6_max_fall = 0;
+
+  std::string meta_version = "";
+
+  DOVIELType dovi_el_type = DOVIELType::TYPE_NONE;
+};
+
+struct HDRStaticMetadataInfo
+{
+  uint32_t max_lum = 0;
+  uint32_t min_lum = 0;
+
+  uint16_t max_cll = 0;
+  uint16_t max_fall = 0;
+};
+
 class CDVDStreamInfo
 {
 public:

@@ -64,12 +64,16 @@ public:
   AVColorTransferCharacteristic GetVideoColorTransferCharacteristic();
   void SetVideoDoViDecoderConfigurationRecord(AVDOVIDecoderConfigurationRecord doViDecoderConfigurationRecord);
   AVDOVIDecoderConfigurationRecord GetVideoDoViDecoderConfigurationRecord();
-  void SetVideoDoViELType(enum DOVIELType doviElType);
-  enum DOVIELType GetVideoDoViELType();
-  void SetVideoDoViMetaVersion(std::string metaVersion);
-  std::string GetVideoDoViMetaVersion();
+
+  void SetVideoDoViFrameInfo(DOVIFrameInfo value);
+  DOVIFrameInfo GetVideoDoViFrameInfo();
+
   void SetVideoDoViCodecFourCC(std::string);
   std::string GetVideoDoViCodecFourCC();
+
+  void SetVideoHDRStaticMetadataInfo(HDRStaticMetadataInfo value);
+  HDRStaticMetadataInfo GetVideoHDRStaticMetadataInfo();
+
   void SetVideoVS10Mode(unsigned int vs10Mode);
   unsigned int GetVideoVS10Mode();
   void SetVideoLiveBitRate(double bitRate);
@@ -262,19 +266,12 @@ protected:
     AVColorPrimaries colorPrimaries;
     AVColorTransferCharacteristic colorTransferCharacteristic;
     AVDOVIDecoderConfigurationRecord doviDecoderConfigurationRecord;
-    enum DOVIELType doviELType;
-    std::string doviMetaVersion;
+
+    DOVIFrameInfo doviFrameInfo;
+
     std::string doviCodecFourCC;
 
-    unsigned int doviFrameLuminanceMin;
-    unsigned int doviFrameLuminanceMax;
-    unsigned int doviFrameLuminanceAvg;
-
-    unsigned int hdrCllCllMax;
-    unsigned int hdrCllFallMax;
-
-    unsigned int hdrMdcvLuminanceMin;
-    unsigned int hdrMdcvLuminanceMax;
+    HDRStaticMetadataInfo hdrStaticMetadataInfo;
 
     unsigned int vs10Mode;
     double liveBitRate;

@@ -23,6 +23,7 @@
 
 #include "utils/StringUtils.h"
 #include "cores/VideoPlayer/Process/ProcessInfo.h"
+#include "cores/VideoPlayer/DVDStreamInfo.h"
 
 #include <algorithm>
 #include <fmt/format.h>
@@ -293,13 +294,24 @@ static void get_dovi_info(uint8_t* buf, uint32_t nal_size, enum DOVIELType& dovi
 
   const DoviVdrDmData* vdr_dm_data = dovi_rpu_get_vdr_dm_data(rpuOpaque);
 
+  DOVIFrameInfo dovi_frame_info;
+  
   if (vdr_dm_data->dm_data.level1)
   {
-    processInfo.SetVideoDoViFrameLuminanceMin(vdr_dm_data->dm_data.level1->min_pq);
-    processInfo.SetVideoDoViFrameLuminanceMax(vdr_dm_data->dm_data.level1->max_pq);
-    processInfo.SetVideoDoViFrameLuminanceAvg(vdr_dm_data->dm_data.level1->avg_pq);
+    dovi_frame_info.level1_min_pq = vdr_dm_data->dm_data.level1->min_pq;
+    dovi_frame_info.level1_max_pq = vdr_dm_data->dm_data.level1->max_pq;
+    dovi_frame_info.level1_avg_pq = vdr_dm_data->dm_data.level1->avg_pq;
   }
 
+  if (vdr_dm_data->dm_data.level6)
+  {
+    dovi_frame_info.level6_max_lum = vdr_dm_data->dm_data.level6->max_display_mastering_luminance;
+    dovi_frame_info.level6_min_lum = vdr_dm_data->dm_data.level6->min_display_mastering_luminance;
+    
+    dovi_frame_info.level6_max_cll = vdr_dm_data->dm_data.level6->max_content_light_level;
+    dovi_frame_info.level6_max_fall = vdr_dm_data->dm_data.level6->max_frame_average_light_level;
+  }
+    
   std::string meta_version = "";
 
   if (vdr_dm_data->dm_data.level254)
@@ -323,7 +335,8 @@ static void get_dovi_info(uint8_t* buf, uint32_t nal_size, enum DOVIELType& dovi
     else 
       meta_version = "CMv2.9";
   }
-  processInfo.SetVideoDoViMetaVersion(meta_version);
+
+  dovi_frame_info.meta_version = meta_version;
 
   const DoviRpuDataHeader* header = dovi_rpu_get_header(rpuOpaque);
   dovi_el_type = DOVIELType::TYPE_NONE;
@@ -335,7 +348,10 @@ static void get_dovi_info(uint8_t* buf, uint32_t nal_size, enum DOVIELType& dovi
     else if (StringUtils::EqualsNoCase(header->el_type, "MEL"))
       dovi_el_type = DOVIELType::TYPE_MEL;
   }
-  processInfo.SetVideoDoViELType(dovi_el_type);
+
+  dovi_frame_info.dovi_el_type = dovi_el_type;
+
+  processInfo.SetVideoDoViFrameInfo(dovi_frame_info);
 
   dovi_rpu_free_vdr_dm_data(vdr_dm_data);
   dovi_rpu_free_header(header);
@@ -415,11 +431,7 @@ CBitstreamConverter::CBitstreamConverter(CDVDStreamInfo& hints, CProcessInfo &pr
   m_removeHdr10Plus = false;
   m_combine = false;
   m_first_frame = true;
-
-  m_max_display_mastering_luminance = 0;
-  m_min_display_mastering_luminance = 0;
-  m_max_content_light_level = 0;
-  m_max_frame_average_light_level = 0;
+  m_hdrStaticMetadataInfo = {};
   m_processInfo.SetVideoSourceHdrType(m_hints.hdrType);
 }
 
@@ -781,8 +793,8 @@ bool CBitstreamConverter::Convert(uint8_t *pData_bl, int iSize_bl, uint8_t *pDat
       if (nal_type == HEVC_NAL_UNSPEC62)
       {
         const uint8_t *nalu_62_data = buf;
+        get_dovi_info((uint8_t *)nalu_62_data, size, m_hints.dovi_el_type, m_processInfo); 
         BitstreamAllocAndCopy(&m_convertBuffer, &offset, nalu_62_data, size, nal_type);
-        get_dovi_info((uint8_t *)nalu_62_data, size, m_hints.dovi_el_type, m_processInfo);     
       }
       else
       {
@@ -1077,34 +1089,42 @@ bool CBitstreamConverter::IsSlice(uint8_t unit_type)
   }
 }
 
-void CBitstreamConverter::ApplyMasteringDisplayColourVolume(const MasteringDisplayColourVolume& metadata) {
+void CBitstreamConverter::ApplyMasteringDisplayColourVolume(const MasteringDisplayColourVolume& metadata, bool& update) {
 
-  if ((m_max_display_mastering_luminance != metadata.maxLuminance) ||
-      (m_min_display_mastering_luminance != metadata.minLuminance))
+  if ((m_hdrStaticMetadataInfo.max_lum != metadata.maxLuminance) ||
+      (m_hdrStaticMetadataInfo.min_lum != metadata.minLuminance))
   {
-    m_max_display_mastering_luminance = metadata.maxLuminance;
-    m_min_display_mastering_luminance = metadata.minLuminance;
+    m_hdrStaticMetadataInfo.max_lum = metadata.maxLuminance;
+    m_hdrStaticMetadataInfo.min_lum = metadata.minLuminance;
+    update = true;
 
-    m_processInfo.SetVideoHdrMdcvLuminanceMax(metadata.maxLuminance);
-    m_processInfo.SetVideoHdrMdcvLuminanceMin(metadata.minLuminance);
-
-    CLog::Log(LOGINFO, "CBitstreamConverter::ApplyMasteringDisplayColourVolume [{}] [{}]", m_max_display_mastering_luminance, m_min_display_mastering_luminance);
+    CLog::Log(LOGINFO, "CBitstreamConverter::ApplyMasteringDisplayColourVolume [{}] [{}]",  m_hdrStaticMetadataInfo.max_lum, m_hdrStaticMetadataInfo.min_lum);
   }
 }
 
-void CBitstreamConverter::ApplyContentLightLevel(const ContentLightLevel& metadata) {
+void CBitstreamConverter::ApplyContentLightLevel(const ContentLightLevel& metadata, bool& update) {
 
-  if ((m_max_content_light_level != metadata.maxContentLightLevel) ||
-      (m_max_frame_average_light_level != metadata.maxFrameAverageLightLevel))
+  if ((m_hdrStaticMetadataInfo.max_cll != metadata.maxContentLightLevel) ||
+      (m_hdrStaticMetadataInfo.max_fall != metadata.maxFrameAverageLightLevel))
   {
-    m_max_content_light_level = metadata.maxContentLightLevel;
-    m_max_frame_average_light_level = metadata.maxFrameAverageLightLevel;
+    m_hdrStaticMetadataInfo.max_cll = metadata.maxContentLightLevel;
+    m_hdrStaticMetadataInfo.max_fall = metadata.maxFrameAverageLightLevel;
+    update = true;
 
-    m_processInfo.SetVideoHdrCllCllMax(metadata.maxContentLightLevel);
-    m_processInfo.SetVideoHdrCllFallMax(metadata.maxFrameAverageLightLevel);
-
-    CLog::Log(LOGINFO, "CBitstreamConverter::ApplyContentLightLevel [{}] [{}]", m_max_content_light_level, m_max_frame_average_light_level);
+    CLog::Log(LOGINFO, "CBitstreamConverter::ApplyContentLightLevel [{}] [{}]", m_hdrStaticMetadataInfo.max_cll, m_hdrStaticMetadataInfo.max_fall);    
   }
+}
+
+void CBitstreamConverter::UpdateHdrStaticMetadata() {
+
+  HDRStaticMetadataInfo hdrStaticMetadataInfo;
+
+  hdrStaticMetadataInfo.max_lum = m_hdrStaticMetadataInfo.max_lum;
+  hdrStaticMetadataInfo.min_lum = m_hdrStaticMetadataInfo.min_lum;  
+  hdrStaticMetadataInfo.max_cll = m_hdrStaticMetadataInfo.max_cll;
+  hdrStaticMetadataInfo.max_fall = m_hdrStaticMetadataInfo.max_fall;
+
+  m_processInfo.SetVideoHDRStaticMetadataInfo(hdrStaticMetadataInfo);
 }
 
 void CBitstreamConverter::AddDoViRpuNalu(const Hdr10PlusMetadata& meta, uint8_t **poutbuf, int *poutbuf_size) {
@@ -1112,10 +1132,10 @@ void CBitstreamConverter::AddDoViRpuNalu(const Hdr10PlusMetadata& meta, uint8_t 
   auto nalu = create_rpu_nalu_for_hdr10plus(
     meta,
     m_convert_Hdr10Plus_peak_brightness_source, 
-    m_max_display_mastering_luminance,
-    m_min_display_mastering_luminance,
-    m_max_content_light_level,
-    m_max_frame_average_light_level);
+    m_hdrStaticMetadataInfo.max_lum,
+    m_hdrStaticMetadataInfo.min_lum,
+    m_hdrStaticMetadataInfo.max_cll,
+    m_hdrStaticMetadataInfo.max_fall);
 
   if (!nalu.empty())
   {
@@ -1129,8 +1149,8 @@ void CBitstreamConverter::AddDoViRpuNalu(const Hdr10PlusMetadata& meta, uint8_t 
       m_hints.dovi.el_present_flag = 0;
       m_hints.dovi.bl_present_flag = 1;
       m_hints.dovi.dv_bl_signal_compatibility_id = 1;
-      get_dovi_info(nalu.data(), nalu.size(), m_hints.dovi_el_type, m_processInfo);
     }
+    get_dovi_info(nalu.data(), nalu.size(), m_hints.dovi_el_type, m_processInfo);
     BitstreamAllocAndCopy(poutbuf, poutbuf_size, NULL, 0, nalu.data(), nalu.size(), HEVC_NAL_UNSPEC62);
     nalu.clear();
   }
@@ -1143,11 +1163,15 @@ void CBitstreamConverter::ProcessSeiPrefix(uint8_t *buf, int32_t nal_size, uint8
   std::vector<uint8_t> clearBuf;
   auto messages = CHevcSei::ParseSeiRbspUnclearedEmulation(buf, nal_size, clearBuf);
 
-  if (auto colourVolume = CHevcSei::ExtractMasteringDisplayColourVolume(messages, clearBuf))
-    ApplyMasteringDisplayColourVolume(colourVolume.value());
+  bool updateMetadata = false;
 
-  if (auto lightLevel = CHevcSei::ExtractContentLightLevel(messages, clearBuf))
-    ApplyContentLightLevel(lightLevel.value());
+  if (auto colourVolume = CHevcSei::ExtractMasteringDisplayColourVolume(messages, clearBuf))
+    ApplyMasteringDisplayColourVolume(colourVolume.value(), updateMetadata);
+
+  if (auto lightLevel = CHevcSei::ExtractContentLightLevel(messages, clearBuf)) 
+    ApplyContentLightLevel(lightLevel.value(), updateMetadata);
+
+  if (updateMetadata) UpdateHdrStaticMetadata();
 
   if (auto res = CHevcSei::ExtractHdr10Plus(messages, clearBuf)) {
 
@@ -1185,7 +1209,6 @@ void CBitstreamConverter::ProcessDoViRpu(uint8_t *buf, int32_t nal_size, uint8_t
   if (m_removeDovi) return;
   
   get_dovi_info(buf, nal_size, m_hints.dovi_el_type, m_processInfo);
-  
   BitstreamAllocAndCopy(poutbuf, poutbuf_size, NULL, 0, buf, nal_size, HEVC_NAL_UNSPEC62);
 }
 

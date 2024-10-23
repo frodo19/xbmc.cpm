@@ -1239,13 +1239,34 @@ const infomap player_process[] = {{"videodecoder", PLAYER_PROCESS_VIDEODECODER},
                                   {"video.dovi.profile", PLAYER_PROCESS_VIDEO_DOVI_PROFILE },
                                   {"video.dovi.level", PLAYER_PROCESS_VIDEO_DOVI_LEVEL },
                                   {"video.dovi.rpu.present", PLAYER_PROCESS_VIDEO_DOVI_RPU_PRESENT },
-                                  {"video.dovi.el.present", PLAYER_PROCESS_VIDEO_DOVI_EL_PRESENT },
-                                  {"video.dovi.el.type", PLAYER_PROCESS_VIDEO_DOVI_EL_TYPE },
-                                  {"video.dovi.meta.version", PLAYER_PROCESS_VIDEO_DOVI_META_VERSION },
+                                  {"video.dovi.el.present", PLAYER_PROCESS_VIDEO_DOVI_EL_PRESENT },                                  
                                   {"video.dovi.bl.present", PLAYER_PROCESS_VIDEO_DOVI_BL_PRESENT },
                                   {"video.dovi.bl.signal.compatibility", PLAYER_PROCESS_VIDEO_DOVI_BL_SIGNAL_COMPATIBILITY },
+
                                   {"video.dovi.codec.fourcc", PLAYER_PROCESS_VIDEO_DOVI_CODEC_FOURCC },
                                   {"video.dovi.codec.string", PLAYER_PROCESS_VIDEO_DOVI_CODEC_STRING },
+
+                                  {"video.dovi.el.type", PLAYER_PROCESS_VIDEO_DOVI_EL_TYPE },
+                                  {"video.dovi.meta.version", PLAYER_PROCESS_VIDEO_DOVI_META_VERSION },
+
+                                  {"video.dovi.l1.min.pq", PLAYER_PROCESS_VIDEO_DOVI_L1_MIN_PQ },
+                                  {"video.dovi.l1.max.pq", PLAYER_PROCESS_VIDEO_DOVI_L1_MAX_PQ },
+                                  {"video.dovi.l1.avg.pq", PLAYER_PROCESS_VIDEO_DOVI_L1_AVG_PQ },
+
+                                  {"video.dovi.l1.min.nits", PLAYER_PROCESS_VIDEO_DOVI_L1_MIN_NITS },
+                                  {"video.dovi.l1.max.nits", PLAYER_PROCESS_VIDEO_DOVI_L1_MAX_NITS },
+                                  {"video.dovi.l1.avg.nits", PLAYER_PROCESS_VIDEO_DOVI_L1_AVG_NITS },
+
+                                  {"video.dovi.l6.max.cll", PLAYER_PROCESS_VIDEO_DOVI_L6_MAX_CLL },
+                                  {"video.dovi.l6.max.fall", PLAYER_PROCESS_VIDEO_DOVI_L6_MAX_FALL },
+                                  {"video.dovi.l6.min.lum", PLAYER_PROCESS_VIDEO_DOVI_L6_MIN_LUM },
+                                  {"video.dovi.l6.max.lum", PLAYER_PROCESS_VIDEO_DOVI_L6_MAX_LUM },
+
+                                  {"video.hdr.max.cll", PLAYER_PROCESS_VIDEO_HDR_MAX_CLL },
+                                  {"video.hdr.max.fall", PLAYER_PROCESS_VIDEO_HDR_MAX_FALL },
+                                  {"video.hdr.min.lum", PLAYER_PROCESS_VIDEO_HDR_MIN_LUM },
+                                  {"video.hdr.max.lum", PLAYER_PROCESS_VIDEO_HDR_MAX_LUM },
+
                                   {"amlogic.pixformat", PLAYER_PROCESS_AML_PIXELFORMAT },
                                   {"amlogic.displaymode", PLAYER_PROCESS_AML_DISPLAYMODE },
                                   {"amlogic.eoft_gamut", PLAYER_PROCESS_AML_EOFT_GAMUT },

@@ -281,39 +281,25 @@ AVDOVIDecoderConfigurationRecord CDataCacheCore::GetVideoDoViDecoderConfiguratio
   return m_playerVideoInfo.doviDecoderConfigurationRecord;
 }
 
-void CDataCacheCore::SetVideoDoViELType(enum DOVIELType doviElType)
+void CDataCacheCore::SetVideoDoViFrameInfo(DOVIFrameInfo value)
 {
   std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
 
-  m_playerVideoInfo.doviELType = doviElType;
+  m_playerVideoInfo.doviFrameInfo = value;
 }
 
-enum DOVIELType CDataCacheCore::GetVideoDoViELType()
+DOVIFrameInfo CDataCacheCore::GetVideoDoViFrameInfo()
 {
   std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
 
-  return m_playerVideoInfo.doviELType;
-}
-
-void CDataCacheCore::SetVideoDoViMetaVersion(std::string metaVersion)
-{
-  std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
-
-  m_playerVideoInfo.doviMetaVersion = metaVersion;
-}
-
-std::string CDataCacheCore::GetVideoDoViMetaVersion()
-{
-  std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
-
-  return m_playerVideoInfo.doviMetaVersion;
+  return m_playerVideoInfo.doviFrameInfo;
 }
 
 void CDataCacheCore::SetVideoDoViCodecFourCC(std::string codecFourCC)
 {
   std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
 
-  m_playerVideoInfo.doviCodecFourCC= codecFourCC;
+  m_playerVideoInfo.doviCodecFourCC = codecFourCC;
 }
 
 std::string CDataCacheCore::GetVideoDoViCodecFourCC()
@@ -321,6 +307,20 @@ std::string CDataCacheCore::GetVideoDoViCodecFourCC()
   std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
 
   return m_playerVideoInfo.doviCodecFourCC;
+}
+
+void CDataCacheCore::SetVideoHDRStaticMetadataInfo(HDRStaticMetadataInfo value)
+{
+  std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
+
+  m_playerVideoInfo.hdrStaticMetadataInfo = value;
+}
+
+HDRStaticMetadataInfo CDataCacheCore::GetVideoHDRStaticMetadataInfo()
+{
+  std::unique_lock<CCriticalSection> lock(m_videoPlayerSection);
+
+  return m_playerVideoInfo.hdrStaticMetadataInfo;
 }
 
 void CDataCacheCore::SetVideoVS10Mode(unsigned int vs10Mode)
