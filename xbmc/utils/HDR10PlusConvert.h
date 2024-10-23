@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "cores/VideoPlayer/DVDStreamInfo.h"
+
 #include "HDR10Plus.h"
 
 enum class PeakBrightnessSource {
@@ -34,8 +36,5 @@ struct VdrDmData {
 
 std::vector<uint8_t> create_rpu_nalu_for_hdr10plus(
   const Hdr10PlusMetadata& meta,
-  PeakBrightnessSource peak_source,
-  uint16_t max_display_mastering_luminance,
-  uint16_t min_display_mastering_luminance,
-  uint16_t max_content_light_level,
-  uint16_t max_frame_average_light_level);
+  const PeakBrightnessSource& peak_source,
+  const HDRStaticMetadataInfo& hdrStaticMetadataInfo);

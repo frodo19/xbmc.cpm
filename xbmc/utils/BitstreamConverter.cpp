@@ -1132,10 +1132,7 @@ void CBitstreamConverter::AddDoViRpuNalu(const Hdr10PlusMetadata& meta, uint8_t 
   auto nalu = create_rpu_nalu_for_hdr10plus(
     meta,
     m_convert_Hdr10Plus_peak_brightness_source, 
-    m_hdrStaticMetadataInfo.max_lum,
-    m_hdrStaticMetadataInfo.min_lum,
-    m_hdrStaticMetadataInfo.max_cll,
-    m_hdrStaticMetadataInfo.max_fall);
+    m_hdrStaticMetadataInfo);
 
   if (!nalu.empty())
   {

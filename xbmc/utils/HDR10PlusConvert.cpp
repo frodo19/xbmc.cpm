@@ -13,6 +13,8 @@
 #include <cmath>
 #include <cstdint>
 
+#include "cores/VideoPlayer/DVDStreamInfo.h"
+
 #include "HDR10PlusConvert.h"
 
 #include "HDR10PlusWriter.h"
@@ -130,23 +132,20 @@ static VdrDmData last_vdr_dm_data = {};
 
 std::vector<uint8_t> create_rpu_nalu_for_hdr10plus(
   const Hdr10PlusMetadata& meta,
-  const PeakBrightnessSource peak_source,
-  const uint16_t max_display_mastering_luminance,
-  const uint16_t min_display_mastering_luminance,
-  const uint16_t max_content_light_level,
-  const uint16_t max_frame_average_light_level) 
+  const PeakBrightnessSource& peak_source,
+  const HDRStaticMetadataInfo& hdrStaticMetadataInfo) 
 {
 
   uint16_t min_pq = 0;
-  if (min_display_mastering_luminance <= 10) {
+  if (hdrStaticMetadataInfo.min_lum <= 10) {
     min_pq = 7;
-  } else if (min_display_mastering_luminance == 50) {
+  } else if (hdrStaticMetadataInfo.min_lum == 50) {
     min_pq = 62;
   }
 
   uint16_t max_pq = maximum_pq(meta, peak_source);
   if (max_pq == 0) {
-    switch (max_display_mastering_luminance) {
+    switch (hdrStaticMetadataInfo.max_lum) {
       case 1000:  { max_pq = 3079; break; }
       case 2000:  { max_pq = 3388; break; }
       case 4000:  { max_pq = 3696; break; }
@@ -161,10 +160,10 @@ std::vector<uint8_t> create_rpu_nalu_for_hdr10plus(
   vdr_dm_data.min_pq = min_pq;
   vdr_dm_data.max_pq = clamp16(max_pq, L1_MAX_PQ_MIN_VALUE, L1_MAX_PQ_MAX_VALUE);
   vdr_dm_data.avg_pq = clamp16(avg_pq, L1_AVG_PQ_MIN_VALUE, (vdr_dm_data.max_pq - 1));
-  vdr_dm_data.max_display_mastering_luminance = max_display_mastering_luminance;
-  vdr_dm_data.min_display_mastering_luminance = min_display_mastering_luminance;
-  vdr_dm_data.max_content_light_level = max_content_light_level;
-  vdr_dm_data.max_frame_average_light_level = max_frame_average_light_level;
+  vdr_dm_data.max_display_mastering_luminance = hdrStaticMetadataInfo.max_lum;
+  vdr_dm_data.min_display_mastering_luminance = hdrStaticMetadataInfo.min_lum;
+  vdr_dm_data.max_content_light_level = hdrStaticMetadataInfo.max_cll;
+  vdr_dm_data.max_frame_average_light_level = hdrStaticMetadataInfo.max_fall;
 
   if ((last_vdr_dm_data.min_pq != vdr_dm_data.min_pq) ||
       (last_vdr_dm_data.max_pq != vdr_dm_data.max_pq) ||
