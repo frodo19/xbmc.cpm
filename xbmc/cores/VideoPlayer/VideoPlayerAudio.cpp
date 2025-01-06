@@ -15,6 +15,7 @@
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "cores/VideoPlayer/Interface/DemuxPacket.h"
 #include "settings/Settings.h"
+#include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
@@ -44,10 +45,15 @@ public:
 };
 
 
-CVideoPlayerAudio::CVideoPlayerAudio(CDVDClock* pClock, CDVDMessageQueue& parent, CProcessInfo &processInfo)
+CVideoPlayerAudio::CVideoPlayerAudio(
+    CDVDClock* pClock,
+    CDVDMessageQueue& parent,
+    CRenderManager& renderManager,
+    CProcessInfo &processInfo)
 : CThread("VideoPlayerAudio"), IDVDStreamPlayerAudio(processInfo)
 , m_messageQueue("audio")
 , m_messageParent(parent)
+, m_renderManager(renderManager)
 , m_audioSink(pClock)
 {
   m_pClock = pClock;
@@ -186,6 +192,7 @@ void CVideoPlayerAudio::CloseStream(bool bWaitForBuffers)
   SInfo info;
   info.info        = s.str();
   info.pts         = DVD_NOPTS_VALUE;
+  info.fpts        = DVD_NOPTS_VALUE;
   info.passthrough = false;
 
   { std::unique_lock<CCriticalSection> lock(m_info_section);
@@ -219,6 +226,7 @@ void CVideoPlayerAudio::UpdatePlayerInfo()
   SInfo info;
   info.info        = s.str();
   info.pts         = m_audioSink.GetPlayingPts();
+  info.fpts        = m_audioSink.GetPlayingFramePts();
   info.passthrough = m_pAudioCodec && m_pAudioCodec->NeedPassthrough();
 
   {
@@ -589,6 +597,10 @@ bool CVideoPlayerAudio::ProcessDecoderOutput(DVDAudioFrame &audioframe)
         m_processInfo.SetAudioBitsPerSample(audioframe.bits_per_sample);
       m_processInfo.SetAudioDecoderName(m_pAudioCodec->GetName());
       m_messageParent.Put(std::make_shared<CDVDMsg>(CDVDMsg::PLAYER_AVCHANGE));
+
+      double audioLatency = static_cast<double>(
+      CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->GetAudioLatencyTweak(audioframe.format.m_streamInfo.m_type));
+      m_renderManager.UpdateAudioLatencyTweak(audioLatency);
     }
   }
 

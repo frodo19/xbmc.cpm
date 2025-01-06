@@ -27,6 +27,7 @@
 #include "utils/Variant.h"
 #include "utils/XMLUtils.h"
 #include "utils/log.h"
+#include "cores/AudioEngine/Utils/AEStreamInfo.h"
 
 #include <algorithm>
 #include <climits>
@@ -472,6 +473,25 @@ bool CAdvancedSettings::Load(const CProfileManager &profileManager)
   return true;
 }
 
+constexpr CAEStreamInfo::DataType passthroughStringToEnum(std::string_view str) {
+
+    if (str == "AC3") return CAEStreamInfo::DataType::STREAM_TYPE_AC3;
+    if (str == "EAC3") return CAEStreamInfo::DataType::STREAM_TYPE_EAC3;
+
+    if (str == "MLP") return CAEStreamInfo::DataType::STREAM_TYPE_MLP;
+    if (str == "TRUEHD") return CAEStreamInfo::DataType::STREAM_TYPE_TRUEHD;
+
+    if (str == "DTS_512") return CAEStreamInfo::DataType::STREAM_TYPE_DTS_512;
+    if (str == "DTS_1024") return CAEStreamInfo::DataType::STREAM_TYPE_DTS_1024;
+    if (str == "DTS_2048") return CAEStreamInfo::DataType::STREAM_TYPE_DTS_2048;
+
+    if (str == "DTSHD") return CAEStreamInfo::DataType::STREAM_TYPE_DTSHD;
+    if (str == "DTSHD_CORE") return CAEStreamInfo::DataType::STREAM_TYPE_DTSHD_CORE;
+    if (str == "DTSHD_MA") return CAEStreamInfo::DataType::STREAM_TYPE_DTSHD_MA;
+
+    return CAEStreamInfo::DataType::STREAM_TYPE_NULL;
+}
+
 void CAdvancedSettings::ParseSettingsFile(const std::string &file)
 {
   CXBMCTinyXML advancedXML;
@@ -590,6 +610,31 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
                       20, 80);
     XMLUtils::GetBoolean(pElement, "allowmultichannelfloat", m_AllowMultiChannelFloat);
     XMLUtils::GetBoolean(pElement, "superviseaudiodelay", m_superviseAudioDelay);
+
+    // Store global display latency settings
+    TiXmlElement* pAudioLatency = pElement->FirstChildElement("latency");
+    if (pAudioLatency)
+    {
+      std::string type;
+      float delay;
+
+      TiXmlElement* pPassthroughAudioLatency = pAudioLatency->FirstChildElement("passthrough");
+
+      while (pPassthroughAudioLatency)
+      {
+        PassthroughAudioLatency audiolatency = {};
+
+        XMLUtils::GetString(pPassthroughAudioLatency, "type", type);
+        audiolatency.type = passthroughStringToEnum(type);
+
+        if (XMLUtils::GetFloat(pPassthroughAudioLatency, "delay", delay, -600.0f, 600.0f))
+          audiolatency.delay = delay;
+
+        m_audioPassthroughLatency.push_back(audiolatency);
+
+        pPassthroughAudioLatency = pPassthroughAudioLatency->NextSiblingElement("passthrough");
+      }
+    }
   }
 
   pElement = pRootElement->FirstChildElement("x11");
@@ -1409,6 +1454,19 @@ float CAdvancedSettings::GetLatencyTweak(float refreshrate,
   }
 
   return delay; // in milliseconds
+}
+
+float CAdvancedSettings::GetAudioLatencyTweak(CAEStreamInfo::DataType type)
+{
+  for (int i = 0; i < (int) m_audioPassthroughLatency.size(); i++)
+  {
+    PassthroughAudioLatency& audiolatency = m_audioPassthroughLatency[i];
+
+    if (type == audiolatency.type)
+      return audiolatency.delay;
+  }
+
+  return 0; // in milliseconds
 }
 
 void CAdvancedSettings::SetDebugMode(bool debug)

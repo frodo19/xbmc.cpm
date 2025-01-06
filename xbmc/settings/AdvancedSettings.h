@@ -12,6 +12,7 @@
 #include "settings/lib/ISettingCallback.h"
 #include "settings/lib/ISettingsHandler.h"
 #include "utils/SortUtils.h"
+#include "cores/AudioEngine/Utils/AEStreamInfo.h"
 
 #include <cstdint>
 #include <set>
@@ -99,6 +100,13 @@ struct RefreshVideoLatency
   float delay;
 };
 
+struct PassthroughAudioLatency
+{
+  CAEStreamInfo::DataType type;
+
+  float delay;
+};
+
 typedef std::vector<TVShowRegexp> SETTINGS_TVSHOWLIST;
 
 class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
@@ -165,6 +173,7 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     float m_videoAutoScaleMaxFps;
     std::vector<RefreshOverride> m_videoAdjustRefreshOverrides;
     std::vector<RefreshVideoLatency> m_videoRefreshLatency;
+    std::vector<PassthroughAudioLatency> m_audioPassthroughLatency;
     float m_videoDefaultLatency;
     int  m_videoCaptureUseOcclusionQuery;
     bool m_DXVACheckCompatibility;
@@ -345,6 +354,8 @@ class CAdvancedSettings : public ISettingCallback, public ISettingsHandler
     void ParseSettingsFile(const std::string &file);
 
     float GetLatencyTweak(float refreshrate, unsigned int resolution);
+    float GetAudioLatencyTweak(CAEStreamInfo::DataType type);
+
     bool m_initialized;
 
     void SetDebugMode(bool debug);
