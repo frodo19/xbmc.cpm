@@ -1922,9 +1922,6 @@ bool CAMLCodec::OpenDecoder()
   m_cur_pts = DVD_NOPTS_VALUE;
   m_dst_rect.SetRect(0, 0, 0, 0);
   m_zoom = -1.0f;
-  m_contrast = -1;
-  m_brightness = -1;
-  m_vadj1_enabled = false;
   CDVDStreamInfo &hints = m_hints;  // Fudge to avoid large chnage delta renaming hints to m_hints.
   m_state = 0;
   m_hints.pClock = hints.pClock;
@@ -2764,26 +2761,6 @@ void CAMLCodec::SetVideoZoom(const float zoom)
   CSysfsPath("/sys/class/video/zoom", aml_zoom);
 }
 
-void CAMLCodec::SetVideoContrast(const int contrast)
-{
-  // input contrast range is 0 to 100 with default of 50.
-  // output contrast range is -127 to 127 with default of 0.
-  int aml_contrast = (127 * (contrast - 50)) / 50;
-  CSysfsPath("/sys/class/amvecm/contrast1", aml_contrast);
-}
-void CAMLCodec::SetVideoBrightness(const int brightness)
-{
-  // input brightness range is 0 to 100 with default of 50.
-  // output brightness range is -255 to 255 with default of 0.
-  int aml_brightness = (255 * (brightness - 50)) / 50;
-  CSysfsPath("/sys/class/amvecm/brightness1", aml_brightness);
-}
-void CAMLCodec::SetVideoSaturation(const int saturation)
-{
-  // output saturation range is -127 to 127 with default of 127.
-  CSysfsPath("/sys/class/video/saturation", saturation);
-}
-
 void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
 {
   // this routine gets called every video frame
@@ -2797,23 +2774,7 @@ void CAMLCodec::SetVideoRect(const CRect &SrcRect, const CRect &DestRect)
   {
     m_zoom = zoom;
   }
-  // enable vadj1
-  if (!m_vadj1_enabled)
-    m_vadj1_enabled = Enable_vadj1();
-  // video contrast adjustment.
-  int contrast = m_processInfo.GetVideoSettings().m_Contrast;
-  if (contrast != m_contrast)
-  {
-    SetVideoContrast(contrast);
-    m_contrast = contrast;
-  }
-  // video brightness adjustment.
-  int brightness = m_processInfo.GetVideoSettings().m_Brightness;
-  if (brightness != m_brightness)
-  {
-    SetVideoBrightness(brightness);
-    m_brightness = brightness;
-  }
+
   // video rate adjustment.
   unsigned int video_rate = GetDecoderVideoRate();
   if (video_rate > 0 && video_rate != am_private->video_rate)
